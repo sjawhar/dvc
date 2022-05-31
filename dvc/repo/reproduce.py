@@ -180,6 +180,12 @@ def _reproduce_stages(
 
     The derived evaluation of _downstream_ B would be: [B, D, E]
     """
+    import concurrent.futures
+
+    import networkx as nx
+
+    from dvc.stage.monitor import CheckpointKilledError
+
     steps = _get_steps(G, stages, downstream, single_item)
 
     force_downstream = kwargs.pop("force_downstream", False)
@@ -188,36 +194,61 @@ def _reproduce_stages(
     # `ret` is used to add a cosmetic newline.
     ret = []
     checkpoint_func = kwargs.pop("checkpoint_func", None)
-    for stage in steps:
-        if ret:
-            logger.info("")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+        stage_deps = {stage: nx.descendants(stage) for stage in steps}
+        futures = {}
+        while stage_deps:
+            while len(futures) < 4:
+                try:
+                    stage = next(
+                        stage_remaining
+                        for stage_remaining, deps in stage_deps.items()
+                        if not deps
+                    )
+                except StopIteration:
+                    if not futures:
+                        raise
+                    break
 
-        if checkpoint_func:
-            kwargs["checkpoint_func"] = partial(
-                _repro_callback, checkpoint_func, unchanged
-            )
+                if ret:
+                    logger.info("")
 
-        from dvc.stage.monitor import CheckpointKilledError
+                if checkpoint_func:
+                    kwargs["checkpoint_func"] = partial(
+                        _repro_callback, checkpoint_func, unchanged
+                    )
 
-        try:
-            ret = _reproduce_stage(stage, **kwargs)
+                future = pool.submit(_reproduce_stage, stage, **kwargs)
+                futures[future] = stage
 
-            if len(ret) == 0:
-                unchanged.extend([stage])
-            elif force_downstream:
-                # NOTE: we are walking our pipeline from the top to the
-                # bottom. If one stage is changed, it will be reproduced,
-                # which tells us that we should force reproducing all of
-                # the other stages down below, even if their direct
-                # dependencies didn't change.
-                kwargs["force"] = True
+            for future, _ in concurrent.futures.wait(
+                futures, return_when=concurrent.futures.FIRST_EXCEPTION
+            ):
+                stage = futures.pop(future)
+                stage_deps = {
+                    stage_remaining: deps.difference([stage])
+                    for stage_remaining, deps in stage_deps.items()
+                    if stage_remaining != stage
+                }
+                try:
+                    ret = future.result()
+                except CheckpointKilledError:
+                    raise
+                except Exception as exc:
+                    raise ReproductionError(stage.addressing) from exc
 
-            if ret:
-                result.extend(ret)
-        except CheckpointKilledError:
-            raise
-        except Exception as exc:
-            raise ReproductionError(stage.addressing) from exc
+                if len(ret) == 0:
+                    unchanged.extend([stage])
+                elif force_downstream:
+                    # NOTE: we are walking our pipeline from the top to the
+                    # bottom. If one stage is changed, it will be reproduced,
+                    # which tells us that we should force reproducing all of
+                    # the other stages down below, even if their direct
+                    # dependencies didn't change.
+                    kwargs["force"] = True
+
+                if ret:
+                    result.extend(ret)
 
     if on_unchanged is not None:
         on_unchanged(unchanged)
