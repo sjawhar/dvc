@@ -1,5 +1,6 @@
 import json
 import os
+import threading
 from collections import defaultdict
 from contextlib import contextmanager
 
@@ -18,6 +19,8 @@ SCHEMA = Schema(
     }
 )
 
+_EDIT_LOCK = threading.Lock()
+
 
 class RWLockFileCorruptedError(DvcException):
     def __init__(self, path):
@@ -34,21 +37,22 @@ class RWLockFileFormatError(DvcException):
 
 @contextmanager
 def _edit_rwlock(lock_dir):
-    path = os.path.join(lock_dir, "rwlock")
-    try:
-        with open(path, encoding="utf-8") as fobj:
-            lock = SCHEMA(json.load(fobj))
-    except FileNotFoundError:
-        lock = SCHEMA({})
-    except json.JSONDecodeError as exc:
-        raise RWLockFileCorruptedError(path) from exc
-    except Invalid as exc:
-        raise RWLockFileFormatError(path) from exc
-    lock["read"] = defaultdict(list, lock["read"])
-    lock["write"] = defaultdict(dict, lock["write"])
-    yield lock
-    with open(path, "w+", encoding="utf-8") as fobj:
-        json.dump(lock, fobj)
+    with _EDIT_LOCK:
+        path = os.path.join(lock_dir, "rwlock")
+        try:
+            with open(path, encoding="utf-8") as fobj:
+                lock = SCHEMA(json.load(fobj))
+        except FileNotFoundError:
+            lock = SCHEMA({})
+        except json.JSONDecodeError as exc:
+            raise RWLockFileCorruptedError(path) from exc
+        except Invalid as exc:
+            raise RWLockFileFormatError(path) from exc
+        lock["read"] = defaultdict(list, lock["read"])
+        lock["write"] = defaultdict(dict, lock["write"])
+        yield lock
+        with open(path, "w+", encoding="utf-8") as fobj:
+            json.dump(lock, fobj)
 
 
 def _infos_to_str(infos):

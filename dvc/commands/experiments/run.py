@@ -115,14 +115,6 @@ def _add_run_common(parser):
         help="Execute all experiments in the run queue. Implies --temp.",
     )
     parser.add_argument(
-        "-j",
-        "--jobs",
-        type=int,
-        default=1,
-        help="Run the specified number of experiments at a time in parallel.",
-        metavar="<number>",
-    )
-    parser.add_argument(
         "--temp",
         action="store_true",
         dest="tmp_dir",

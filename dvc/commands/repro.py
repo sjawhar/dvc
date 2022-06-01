@@ -40,6 +40,7 @@ class CmdRepro(CmdBase):
             "recursive": self.args.recursive,
             "force_downstream": self.args.force_downstream,
             "pull": self.args.pull,
+            "jobs": self.args.jobs,
         }
 
     @property
@@ -136,6 +137,14 @@ def add_arguments(repro_parser):
         default=False,
         help="Only print the commands that would be executed without "
         "actually executing.",
+    )
+    repro_parser.add_argument(
+        "-j",
+        "--jobs",
+        type=int,
+        default=1,
+        help="Run the specified number of experiments at a time in parallel.",
+        metavar="<number>",
     )
 
 

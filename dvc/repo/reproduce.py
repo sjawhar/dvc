@@ -143,7 +143,13 @@ def reproduce(
 
 
 def _reproduce_stages(
-    G, stages, downstream=False, single_item=False, on_unchanged=None, **kwargs
+    G,
+    stages,
+    downstream=False,
+    single_item=False,
+    on_unchanged=None,
+    jobs=1,
+    **kwargs,
 ):
     r"""Derive the evaluation of the given node for the given graph.
 
@@ -194,11 +200,11 @@ def _reproduce_stages(
     # `ret` is used to add a cosmetic newline.
     ret = []
     checkpoint_func = kwargs.pop("checkpoint_func", None)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-        stage_deps = {stage: nx.descendants(stage) for stage in steps}
+    stage_deps = {stage: nx.descendants(G, stage) for stage in steps}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
         futures = {}
         while stage_deps:
-            while len(futures) < 4:
+            while len(futures) < jobs:
                 try:
                     stage = next(
                         stage_remaining
@@ -220,15 +226,16 @@ def _reproduce_stages(
 
                 future = pool.submit(_reproduce_stage, stage, **kwargs)
                 futures[future] = stage
+                stage_deps.pop(stage)
 
-            for future, _ in concurrent.futures.wait(
+            done, _ = concurrent.futures.wait(
                 futures, return_when=concurrent.futures.FIRST_EXCEPTION
-            ):
+            )
+            for future in done:
                 stage = futures.pop(future)
                 stage_deps = {
                     stage_remaining: deps.difference([stage])
                     for stage_remaining, deps in stage_deps.items()
-                    if stage_remaining != stage
                 }
                 try:
                     ret = future.result()
