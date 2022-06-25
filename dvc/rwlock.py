@@ -1,9 +1,12 @@
+import fcntl
 import json
 import os
-import threading
+import pathlib
+import time
 from collections import defaultdict
 from contextlib import contextmanager
 
+import filelock
 from voluptuous import Invalid, Optional, Required, Schema
 
 from .exceptions import DvcException
@@ -18,8 +21,6 @@ SCHEMA = Schema(
         Optional("read", default={}): {str: [INFO_SCHEMA]},
     }
 )
-
-_EDIT_LOCK = threading.Lock()
 
 
 class RWLockFileCorruptedError(DvcException):
@@ -37,10 +38,13 @@ class RWLockFileFormatError(DvcException):
 
 @contextmanager
 def _edit_rwlock(lock_dir):
-    with _EDIT_LOCK:
-        path = os.path.join(lock_dir, "rwlock")
+    path = pathlib.Path(lock_dir, "rwlock")
+    lock_path = path.with_suffix(".lock")
+
+    path.parent.mkdir(exist_ok=True, parents=True)
+    with filelock.FileLock(lock_path, timeout=5):
         try:
-            with open(path, encoding="utf-8") as fobj:
+            with path.open(encoding="utf-8") as fobj:
                 lock = SCHEMA(json.load(fobj))
         except FileNotFoundError:
             lock = SCHEMA({})
@@ -50,7 +54,9 @@ def _edit_rwlock(lock_dir):
             raise RWLockFileFormatError(path) from exc
         lock["read"] = defaultdict(list, lock["read"])
         lock["write"] = defaultdict(dict, lock["write"])
+
         yield lock
+
         with open(path, "w+", encoding="utf-8") as fobj:
             json.dump(lock, fobj)
 
