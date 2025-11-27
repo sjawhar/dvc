@@ -18,7 +18,7 @@ keywords = [
 ]
 license = "Apache-2.0"
 license-files = ["LICENSE"]
-maintainers = [{ name = "Iterative", email = "support@dvc.org" }]
+maintainers = [{ name = "Treeverse", email = "support@dvc.org" }]
 authors = [{ name = "Dmitry Petrov", email = "dmitry@dvc.org" }]
 requires-python = ">=3.9"
 classifiers = [
@@ -130,8 +130,8 @@ webhdfs_kerberos = ["dvc-webhdfs[kerberos]>=3.1,<4"]
 
 [project.urls]
 Documentation = "https://dvc.org/doc"
-Issues = "https://github.com/iterative/dvc/issues"
-Source = "https://github.com/iterative/dvc"
+Issues = "https://github.com/treeverse/dvc/issues"
+Source = "https://github.com/treeverse/dvc"
 
 [project.scripts]
 dvc = "dvc.cli:main"
