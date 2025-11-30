@@ -8,20 +8,6 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from urllib.parse import urlparse
 
 import voluptuous as vol
-from funcy import collecting, first, project
-
-from dvc import prompt
-from dvc.exceptions import (
-    CacheLinkError,
-    CheckoutError,
-    CollectCacheError,
-    ConfirmRemoveError,
-    DvcException,
-    MergeError,
-)
-from dvc.log import logger
-from dvc.utils import format_link
-from dvc.utils.objects import cached_property
 from dvc_data.hashfile import check as ocheck
 from dvc_data.hashfile import load as oload
 from dvc_data.hashfile.build import build
@@ -34,6 +20,14 @@ from dvc_data.hashfile.meta import Meta
 from dvc_data.hashfile.transfer import transfer as otransfer
 from dvc_data.hashfile.tree import Tree, du
 from dvc_objects.errors import ObjectFormatError
+from funcy import collecting, first, project
+
+from dvc import prompt
+from dvc.exceptions import (CacheLinkError, CheckoutError, CollectCacheError,
+                            ConfirmRemoveError, DvcException, MergeError)
+from dvc.log import logger
+from dvc.utils import format_link
+from dvc.utils.objects import cached_property
 
 from .annotations import ANNOTATION_FIELDS, ANNOTATION_SCHEMA, Annotation
 from .fs import LocalFileSystem, RemoteMissingDepsError, Schemes, get_cloud_fs
@@ -42,9 +36,10 @@ from .utils import relpath
 from .utils.fs import path_isin
 
 if TYPE_CHECKING:
-    from dvc.repo import Repo
     from dvc_data.hashfile.obj import HashFile
     from dvc_data.index import DataIndexKey
+
+    from dvc.repo import Repo
 
     from .ignore import CheckIgnoreResult, DvcIgnoreFilter
 
@@ -1575,4 +1570,5 @@ SCHEMA = {
     Output.PARAM_PUSH: bool,
     Output.PARAM_FILES: [DIR_FILES_SCHEMA],
     Output.PARAM_FS_CONFIG: dict,
+}
 }
