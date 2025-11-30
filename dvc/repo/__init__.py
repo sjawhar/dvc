@@ -16,6 +16,11 @@ from dvc.log import logger
 from dvc.utils.objects import cached_property
 
 if TYPE_CHECKING:
+    from dvc_data.hashfile.hash_info import HashInfo
+    from dvc_data.hashfile.meta import Meta
+    from dvc_data.hashfile.state import StateBase
+    from dvc_data.index import DataIndex, DataIndexEntry
+
     from dvc.fs import FileSystem
     from dvc.fs.data import DataFileSystem
     from dvc.fs.dvc import DVCFileSystem
@@ -24,8 +29,6 @@ if TYPE_CHECKING:
     from dvc.scm import Git, NoSCM
     from dvc.stage import Stage
     from dvc.types import DictStrAny
-    from dvc_data.hashfile.state import StateBase
-    from dvc_data.index import DataIndex, DataIndexEntry
 
     from .experiments import Experiments
     from .index import Index
@@ -147,6 +150,8 @@ class Repo:
         remote_config: Optional["DictStrAny"] = None,
         _wait_for_lock: bool = False,
     ):
+        from dvc_data.hashfile.state import State, StateNoop
+
         from dvc.cachemgr import CacheManager
         from dvc.data_cloud import DataCloud
         from dvc.fs import GitFileSystem, LocalFileSystem
@@ -159,7 +164,6 @@ class Repo:
         from dvc.repo.stage import StageLoad
         from dvc.scm import SCM
         from dvc.stage.cache import StageCache
-        from dvc_data.hashfile.state import State, StateNoop
 
         self.url = url
         self._fs_conf = {"repo_factory": repo_factory}
@@ -236,6 +240,8 @@ class Repo:
             Callable[[str, Exception], None]
         ] = None
         self._lock_depth: int = 0
+        # Caches hash computations during repro to avoid redundant tree builds
+        self._hash_cache: dict[tuple[str, str, str], tuple["Meta", "HashInfo"]] = {}
 
     def __str__(self):
         return self.url or self.root_dir
@@ -672,9 +678,13 @@ class Repo:
         self.__dict__.pop("dvcfs", None)
         self.__dict__.pop("datafs", None)
         self.__dict__.pop("config", None)
+        self._hash_cache = {}
 
     def __enter__(self):
         return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
