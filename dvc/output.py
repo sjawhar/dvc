@@ -42,10 +42,10 @@ from .utils import relpath
 from .utils.fs import path_isin
 
 if TYPE_CHECKING:
+    from dvc.repo import Repo
     from dvc_data.hashfile.obj import HashFile
     from dvc_data.index import DataIndexKey
 
-    from dvc.repo import Repo
 
     from .ignore import CheckIgnoreResult, DvcIgnoreFilter
 
@@ -556,8 +556,6 @@ class Output:
         else:
             odb = self.local_cache
 
-        # Check repo-level hash cache to avoid rebuilding same directories
-        # This significantly speeds up repro when many stages share deps
         cache_key = (self.fs_path, self.hash_name, self.fs.protocol)
         if self.repo is not None and cache_key in self.repo._hash_cache:
             return self.repo._hash_cache[cache_key]
@@ -571,7 +569,6 @@ class Output:
             dry_run=not self.use_cache,
         )
 
-        # Cache the result for reuse by other stages with same dependency
         if self.repo is not None:
             self.repo._hash_cache[cache_key] = (meta, obj.hash_info)
 
