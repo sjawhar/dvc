@@ -8,18 +8,6 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from urllib.parse import urlparse
 
 import voluptuous as vol
-from dvc_data.hashfile import check as ocheck
-from dvc_data.hashfile import load as oload
-from dvc_data.hashfile.build import build
-from dvc_data.hashfile.checkout import checkout
-from dvc_data.hashfile.db import HashFileDB, add_update_tree
-from dvc_data.hashfile.hash import DEFAULT_ALGORITHM
-from dvc_data.hashfile.hash_info import HashInfo
-from dvc_data.hashfile.istextfile import istextfile
-from dvc_data.hashfile.meta import Meta
-from dvc_data.hashfile.transfer import transfer as otransfer
-from dvc_data.hashfile.tree import Tree, du
-from dvc_objects.errors import ObjectFormatError
 from funcy import collecting, first, project
 
 from dvc import prompt
@@ -34,6 +22,18 @@ from dvc.exceptions import (
 from dvc.log import logger
 from dvc.utils import format_link
 from dvc.utils.objects import cached_property
+from dvc_data.hashfile import check as ocheck
+from dvc_data.hashfile import load as oload
+from dvc_data.hashfile.build import build
+from dvc_data.hashfile.checkout import checkout
+from dvc_data.hashfile.db import HashFileDB, add_update_tree
+from dvc_data.hashfile.hash import DEFAULT_ALGORITHM
+from dvc_data.hashfile.hash_info import HashInfo
+from dvc_data.hashfile.istextfile import istextfile
+from dvc_data.hashfile.meta import Meta
+from dvc_data.hashfile.transfer import transfer as otransfer
+from dvc_data.hashfile.tree import Tree, du
+from dvc_objects.errors import ObjectFormatError
 
 from .annotations import ANNOTATION_FIELDS, ANNOTATION_SCHEMA, Annotation
 from .fs import LocalFileSystem, RemoteMissingDepsError, Schemes, get_cloud_fs
