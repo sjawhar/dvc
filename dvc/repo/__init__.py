@@ -16,11 +16,6 @@ from dvc.log import logger
 from dvc.utils.objects import cached_property
 
 if TYPE_CHECKING:
-    from dvc_data.hashfile.hash_info import HashInfo
-    from dvc_data.hashfile.meta import Meta
-    from dvc_data.hashfile.state import StateBase
-    from dvc_data.index import DataIndex, DataIndexEntry
-
     from dvc.fs import FileSystem
     from dvc.fs.data import DataFileSystem
     from dvc.fs.dvc import DVCFileSystem
@@ -29,6 +24,10 @@ if TYPE_CHECKING:
     from dvc.scm import Git, NoSCM
     from dvc.stage import Stage
     from dvc.types import DictStrAny
+    from dvc_data.hashfile.hash_info import HashInfo
+    from dvc_data.hashfile.meta import Meta
+    from dvc_data.hashfile.state import StateBase
+    from dvc_data.index import DataIndex, DataIndexEntry
 
     from .experiments import Experiments
     from .index import Index
