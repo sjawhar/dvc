@@ -149,7 +149,6 @@ class Repo:
         remote_config: Optional["DictStrAny"] = None,
         _wait_for_lock: bool = False,
     ):
-
         from dvc.cachemgr import CacheManager
         from dvc.data_cloud import DataCloud
         from dvc.fs import GitFileSystem, LocalFileSystem
@@ -239,7 +238,7 @@ class Repo:
             Callable[[str, Exception], None]
         ] = None
         self._lock_depth: int = 0
-        # Caches hash computations during repro to avoid redundant tree builds
+        # Caches for hash computations during repro to avoid redundant tree builds
         self._hash_cache: dict[tuple[str, str, str], tuple["Meta", "HashInfo"]] = {}
 
     def __str__(self):

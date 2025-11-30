@@ -555,7 +555,7 @@ class Output:
         else:
             odb = self.local_cache
 
-        # In memory hash cache to avoid rebuilding same directories when many stages share deps
+        # Cache hash computations during repro to avoid redundant tree builds
         cache_key = (self.fs_path, self.hash_name, self.fs.protocol)
         if self.repo is not None and cache_key in self.repo._hash_cache:
             return self.repo._hash_cache[cache_key]
