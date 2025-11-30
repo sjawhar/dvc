@@ -23,8 +23,14 @@ from dvc_objects.errors import ObjectFormatError
 from funcy import collecting, first, project
 
 from dvc import prompt
-from dvc.exceptions import (CacheLinkError, CheckoutError, CollectCacheError,
-                            ConfirmRemoveError, DvcException, MergeError)
+from dvc.exceptions import (
+    CacheLinkError,
+    CheckoutError,
+    CollectCacheError,
+    ConfirmRemoveError,
+    DvcException,
+    MergeError,
+)
 from dvc.log import logger
 from dvc.utils import format_link
 from dvc.utils.objects import cached_property
@@ -1570,5 +1576,4 @@ SCHEMA = {
     Output.PARAM_PUSH: bool,
     Output.PARAM_FILES: [DIR_FILES_SCHEMA],
     Output.PARAM_FS_CONFIG: dict,
-}
 }
