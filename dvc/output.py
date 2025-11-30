@@ -11,8 +11,14 @@ import voluptuous as vol
 from funcy import collecting, first, project
 
 from dvc import prompt
-from dvc.exceptions import (CacheLinkError, CheckoutError, CollectCacheError,
-                            ConfirmRemoveError, DvcException, MergeError)
+from dvc.exceptions import (
+    CacheLinkError,
+    CheckoutError,
+    CollectCacheError,
+    ConfirmRemoveError,
+    DvcException,
+    MergeError,
+)
 from dvc.log import logger
 from dvc.utils import format_link
 from dvc.utils.objects import cached_property
@@ -36,10 +42,10 @@ from .utils import relpath
 from .utils.fs import path_isin
 
 if TYPE_CHECKING:
-    from dvc.repo import Repo
     from dvc_data.hashfile.obj import HashFile
     from dvc_data.index import DataIndexKey
 
+    from dvc.repo import Repo
 
     from .ignore import CheckIgnoreResult, DvcIgnoreFilter
 
