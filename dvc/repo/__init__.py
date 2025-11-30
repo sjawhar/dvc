@@ -149,7 +149,6 @@ class Repo:
         remote_config: Optional["DictStrAny"] = None,
         _wait_for_lock: bool = False,
     ):
-        from dvc_data.hashfile.state import State, StateNoop
 
         from dvc.cachemgr import CacheManager
         from dvc.data_cloud import DataCloud
@@ -163,6 +162,7 @@ class Repo:
         from dvc.repo.stage import StageLoad
         from dvc.scm import SCM
         from dvc.stage.cache import StageCache
+        from dvc_data.hashfile.state import State, StateNoop
 
         self.url = url
         self._fs_conf = {"repo_factory": repo_factory}
@@ -681,9 +681,6 @@ class Repo:
 
     def __enter__(self):
         return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()

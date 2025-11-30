@@ -46,7 +46,6 @@ if TYPE_CHECKING:
     from dvc_data.hashfile.obj import HashFile
     from dvc_data.index import DataIndexKey
 
-
     from .ignore import CheckIgnoreResult, DvcIgnoreFilter
 
 logger = logger.getChild(__name__)
@@ -748,7 +747,6 @@ class Output:
 
         self.hash_info = self.obj.hash_info
 
-        # Update hash cache so downstream stages see the new hash
         if self.repo is not None:
             self.repo._hash_cache[cache_key] = (self.meta, self.hash_info)
 
