@@ -136,6 +136,7 @@ def to_pipeline_file(stage: "PipelineStage"):
         (stage.PARAM_FROZEN, stage.frozen),
         (stage.PARAM_ALWAYS_CHANGED, stage.always_changed),
         (stage.PARAM_META, stage.meta),
+        (stage.PARAM_MUTEX, stage.mutex),
     ]
     return {stage.name: OrderedDict([(key, value) for key, value in res if value])}
 
