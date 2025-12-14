@@ -1,4 +1,5 @@
 import concurrent.futures
+from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
@@ -171,31 +172,50 @@ class StageInfo:
 def _start_ready_stages(
     to_repro: dict["Stage", StageInfo],
     executor: concurrent.futures.ThreadPoolExecutor,
+    *,
     max_stages: int,
+    mutex_groups: defaultdict[str, int],
     repro_fn: Callable = _reproduce_stage,
     **kwargs,
 ) -> dict[concurrent.futures.Future["Stage"], "Stage"]:
-    ready = [
-        (stage, stage_info)
-        for stage, stage_info in to_repro.items()
-        if stage_info.status == ReproStatus.READY and not stage_info.upstream_unfinished
-    ]
-    if not ready:
-        return {}
+    futures: dict[concurrent.futures.Future[Stage], Stage] = {}
+    for _ in range(max_stages):
+        stage = next(
+            (
+                stage
+                for stage, stage_info in to_repro.items()
+                if (
+                    stage_info.status == ReproStatus.READY
+                    and not stage_info.upstream_unfinished
+                    and all(mutex_groups[mutex] == 0 for mutex in stage.mutex)
+                )
+            ),
+            None,
+        )
+        if stage is None:
+            break
 
-    futures = {
-        executor.submit(
+        stage_info = to_repro[stage]
+        future = executor.submit(
             repro_fn,
             stage,
             upstream=stage_info.upstream,
             force=stage_info.force,
             **kwargs,
-        ): stage
-        for stage, stage_info in ready[:max_stages]
-    }
-    for stage in futures.values():
-        to_repro[stage].status = ReproStatus.IN_PROGRESS
+        )
+        futures[future] = stage
+        stage_info.status = ReproStatus.IN_PROGRESS
+
+        for mutex in stage.mutex:
+            mutex_groups[mutex] += 1
+
     return futures
+
+
+def _remove_mutexes(mutex_groups: defaultdict[str, int], stages: list["Stage"]):
+    for stage in stages:
+        for mutex in stage.mutex:
+            mutex_groups[mutex] -= 1
 
 
 def _result_or_raise(
@@ -266,6 +286,11 @@ def _reproduce(
 ) -> list["Stage"]:
     assert on_error in ("fail", "keep-going", "ignore")
 
+    if jobs == -1:
+        jobs = len(stages)
+    max_workers = max(1, min(jobs, len(stages)))
+
+    mutex_groups: defaultdict[str, int] = defaultdict(int)
     to_repro = {
         stage: StageInfo(
             upstream=(upstream := list(graph.successors(stage)) if graph else []),
@@ -277,16 +302,20 @@ def _reproduce(
         )
         for stage in stages
     }
-
-    if jobs == -1:
-        jobs = len(stages)
-    max_workers = max(1, min(jobs, len(stages)))
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = _start_ready_stages(to_repro, executor, max_workers, **kwargs)
+        futures = _start_ready_stages(
+            to_repro,
+            executor,
+            max_stages=max_workers,
+            mutex_groups=mutex_groups,
+            **kwargs,
+        )
         while futures:
             done, _ = concurrent.futures.wait(
                 futures, return_when=concurrent.futures.FIRST_COMPLETED
             )
+
+            finished_stages: list[Stage] = []
             for future in done:
                 stage = futures.pop(future)
                 stage_info = to_repro[stage]
@@ -299,8 +328,18 @@ def _reproduce(
                     on_error,
                     force_downstream,
                 )
+                finished_stages.append(stage)
+            _remove_mutexes(mutex_groups, finished_stages)
 
-            futures.update(_start_ready_stages(to_repro, executor, len(done), **kwargs))
+            futures.update(
+                _start_ready_stages(
+                    to_repro,
+                    executor,
+                    max_stages=len(done),
+                    mutex_groups=mutex_groups,
+                    **kwargs,
+                )
+            )
 
     return _result_or_raise(to_repro, stages, on_error)
 

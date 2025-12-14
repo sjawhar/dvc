@@ -1324,3 +1324,50 @@ def test_repro_external_outputs(tmp_dir, dvc, local_workspace, persist):
     assert (local_workspace / "foo").read_text() == "foo"
     assert (local_workspace / "bar").read_text() == "foo"
     assert not (local_workspace / "cache").exists()
+
+
+@pytest.mark.parametrize("add_mutex", [True, False])
+def test_repro_mutex_groups(tmp_dir, dvc, add_mutex):
+    script = dedent("""\
+        import sys
+        import time
+        from pathlib import Path
+
+        lock_file = Path("mutex.lock")
+        output_file = Path(sys.argv[1])
+
+        if lock_file.exists():
+            raise RuntimeError("Concurrent execution detected!")
+
+        lock_file.touch()
+        try:
+            time.sleep(0.5)
+            output_file.write_text("done")
+        finally:
+            lock_file.unlink()
+    """)
+    (tmp_dir / "exclusive.py").write_text(script)
+
+    mutex = ["exclusive-resource"] if add_mutex else None
+    dvc.stage.add(
+        cmd="python exclusive.py out_a",
+        outs=["out_a"],
+        name="stage-a",
+        mutex=mutex,
+    )
+    dvc.stage.add(
+        cmd="python exclusive.py out_b",
+        outs=["out_b"],
+        name="stage-b",
+        mutex=mutex,
+    )
+
+    ret = main(["repro", "--jobs", "2"])
+
+    if add_mutex:
+        assert ret == 0
+
+        assert (tmp_dir / "out_a").read_text() == "done"
+        assert (tmp_dir / "out_b").read_text() == "done"
+    else:
+        assert ret != 0

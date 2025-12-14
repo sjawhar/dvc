@@ -67,6 +67,7 @@ def loads_from(
                 Stage.PARAM_MD5,
                 Stage.PARAM_DESC,
                 Stage.PARAM_META,
+                Stage.PARAM_MUTEX,
                 "name",
             ],
         ),
@@ -143,6 +144,7 @@ class Stage(params.StageParams):
         dvcfile=None,
         desc: Optional[str] = None,
         meta=None,
+        mutex=None,
     ):
         if deps is None:
             deps = []
@@ -163,6 +165,7 @@ class Stage(params.StageParams):
         self.desc: Optional[str] = desc
         self.meta = meta
         self.raw_data = RawData()
+        self.mutex: list[str] = mutex or []
 
     @property
     def path(self) -> str:

@@ -201,6 +201,7 @@ def get_dump(stage: "Stage", **kwargs):
             stage.PARAM_OUTS: [o.dumpd(**kwargs) for o in stage.outs],
             stage.PARAM_ALWAYS_CHANGED: stage.always_changed,
             stage.PARAM_META: stage.meta,
+            stage.PARAM_MUTEX: stage.mutex,
         }.items()
         if value
     }
